@@ -1,0 +1,29 @@
+# Core LangChain libraries
+langchain
+langchain-community
+langchain-core
+langchain-openai          # keep if you still want to call OpenAI as a fallback
+
+# Hugging Face / Transformers (open‑source LLMs)
+transformers
+sentence-transformers
+accelerate
+datasets
+sentencepiece
+huggingface-hub
+
+# PyTorch – choose the appropriate wheel based on hardware
+#   CPU‑only:   pip install torch
+#   GPU:       pip install torch --extra-index-url https://download.pytorch.org/whl/cu118   (or cu121, etc.)
+torch
+# Vector‑store back‑ends 
+faiss-cpu                 # CPU version of FAISS
+openai                    # optional – only if you still want OpenAI embeddings or fallback LLMs
+
+python-dotenv
+
+fastapi
+uvicorn[standard]
+
+tqdm
+pymongo
