@@ -27,3 +27,4 @@ uvicorn[standard]
 
 tqdm
 pymongo
+beautifulsoup4
