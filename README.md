@@ -164,7 +164,7 @@ INGESTION COMPLETE
 ============================================================
 ```
 
-### Step 2 — Run Tests (Optional but Recommended)
+### Step 2 — Run Tests (Optional)
 
 Verify the full pipeline works before starting the API:
 ```bash
