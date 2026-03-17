@@ -104,6 +104,9 @@ python ingest.py
 
 ## step 3
 
-run the Fast API app from the root folder
+- run the Fast API app from the root folder
 
+```
 uvicorn main:app --reload
+```
+
