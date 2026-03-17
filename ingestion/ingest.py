@@ -24,11 +24,11 @@ load_dotenv()
 
 def main():
 
-    print("\n" + "="*60)
+    print("=====================")
     print("RAG INGESTION PIPELINE")
-    print("="*60)
+    print("=======================")
 
-    # ── config ──────────────────────────────────────────────────
+    # my configs 
     MONGODB_URI      = os.getenv("MONGODB_URI")
     DATABASE_NAME    = os.getenv("MONGODB_DATABASE")
     VECTOR_STORE     = "data/vector_store"
@@ -49,7 +49,7 @@ def main():
     print(f"Vector store   : {VECTOR_STORE}")
     print(f"Chunk size     : {CHUNK_SIZE} | Overlap: {CHUNK_OVERLAP}")
 
-    # ── step 1: load + format ────────────────────────────────────
+    # ── step 1: loading + format ────────────────────────────────────
     print("\n[1] Connecting to MongoDB and loading documents...")
 
     loader = MultiCollectionMongoDBLoader(
@@ -112,7 +112,7 @@ def main():
         return
 
     # ── step 5: save ─────────────────────────────────────────────
-    print("\n[5] Saving indexes to disk...")
+    print("\n[5] Saving indexes to memory...")
 
     try:
         indexer.save_all_indexes()
@@ -121,10 +121,10 @@ def main():
         logger.exception("Index saving failed")
         return
 
-    # ── done ─────────────────────────────────────────────────────
-    print("\n" + "="*60)
+    # ── complete ─────────────────────────────────────────────────────
+    print("===================")
     print("INGESTION COMPLETE")
-    print("="*60)
+    print("====================")
     print(f"  Documents loaded : {total_docs}")
     print(f"  Chunks created   : {total_chunks}")
     print(f"  Collections      : {len(chunked_data)}")

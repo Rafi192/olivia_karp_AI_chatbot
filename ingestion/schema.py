@@ -1,25 +1,91 @@
+# ingestion/schemas.py
+
 COLLECTION_SCHEMAS = {
 
-    "applyjobs": {
-        "fields": ["jobId", "userId", "coverLetter", "portfolioUrl", "linkedinUrl", "status"],
-        "required_fields": ["jobId", "userId"],
-        "template": """Job Application:
-        Job ID: {jobId}
-        Applicant ID: {userId}
-        Cover Letter: {coverLetter}
-        Portfolio: {portfolioUrl}
-        LinkedIn: {linkedinUrl}
+    "blogs": {
+        "fields": [
+            "title", "author", "category", "tags",
+            "summary", "content", "status", "read_time"
+        ],
+        "required_fields": ["title", "content"],
+        "template": """Blog Post:
+        Title: {title}
+        Author: {author}
+        Category: {category}
+        Tags: {tags}
+        Read Time: {read_time}
+        Status: {status}
+        Summary: {summary}
+        Content: {content}
+        """
+    },
+
+    "courseideas": {
+        "fields": [
+            "title", "category", "skillLevel", "description",
+            "keyTopics", "whoIsThisCourseFor", "yourName", "status"
+        ],
+        "required_fields": ["title", "description"],
+        "template": """Course Idea:
+        Title: {title}
+        Category: {category}
+        Skill Level: {skillLevel}
+        Status: {status}
+        Description: {description}
+        Key Topics: {keyTopics}
+        Who Is This For: {whoIsThisCourseFor}
+        Submitted By: {yourName}
+        """
+    },
+
+    "joinmentorcoaches": {
+        "fields": [
+            "mentorName", "expertise", "experienceYears",
+            "preferredMode", "availability", "status"
+        ],
+        "required_fields": ["mentorName", "expertise"],
+        "template": """Mentor / Coach Profile:
+        Name: {mentorName}
+        Expertise: {expertise}
+        Experience: {experienceYears} years
+        Preferred Mode: {preferredMode}
+        Availability: {availability}
         Status: {status}
         """
     },
 
-    "blogs": {
-        "fields": ["blog_heading", "blog_body", "blog_summary"],
-        "required_fields": ["blog_heading", "blog_body"],
-        "template": """Blog Post:
-        Heading: {blog_heading}
-        Summary: {blog_summary}
-        Content: {blog_body}
+    "reviews": {
+        "fields": [
+            "reviewerName", "reviewFor", "reviewType",
+            "rating", "comments", "status"
+        ],
+        "required_fields": ["reviewFor", "comments"],
+        "template": """Review:
+        Reviewer: {reviewerName}
+        Reviewed For: {reviewFor}
+        Type: {reviewType}
+        Rating: {rating} / 5
+        Status: {status}
+        Comments: {comments}
+        """
+    },
+
+    "media": {
+        "fields": [
+            "title", "mediaType", "fileUrl",
+            "uploadedBy", "tags", "description", "status"
+        ],
+        "required_fields": ["title", "description"],
+        "metadata_fields": ["fileUrl", "thumbnailUrl"],
+        "template": """Media:
+        Title: {title}
+        Type: {mediaType}
+        Uploaded By: {uploadedBy}
+        Tags: {tags}
+        Status: {status}
+        Description: {description}
+        File URL: {fileUrl}
+        Thumbnail URL: {thumbnailUrl}
         """
     },
 
@@ -31,6 +97,7 @@ COLLECTION_SCHEMAS = {
             "hiredCount", "totalHiredCount"
         ],
         "required_fields": ["title", "description", "companyName"],
+        "metadata_fields": ["companyURL", "companyLogo"],
         "template": """Job Listing:
         Title: {title}
         Company: {companyName}
@@ -47,4 +114,41 @@ COLLECTION_SCHEMAS = {
         """
     },
 
+    "applyjobs": {
+        "fields": [
+            "jobId", "userId", "coverLetter",
+            "portfolioUrl", "linkedinUrl", "status"
+        ],
+        "required_fields": ["jobId", "userId"],
+        "metadata_fields": ["portfolioUrl", "linkedinUrl"],
+        "template": """Job Application:
+        Job ID: {jobId}
+        Applicant ID: {userId}
+        Cover Letter: {coverLetter}
+        Portfolio: {portfolioUrl}
+        LinkedIn: {linkedinUrl}
+        Status: {status}
+        """
+    },
+
 }
+
+# Collections to exclude from RAG entirely
+EXCLUDED_COLLECTIONS = [
+    "users",
+    "notifications",
+    "bookings",
+    "contacts",
+    "referrals",
+]
+
+
+CASUAL_PATTERNS = [
+    "hello", "hi", "hey", "how are you", "how can you help",
+    "what can you do", "who are you", "good morning", "good evening",
+    "thanks", "thank you", "bye", "goodbye", "how can you assist me", "what can you do for me", "how are you"
+]
+
+def is_casual_query(query: str) -> bool:
+    query_lower = query.lower().strip()
+    return any(pattern in query_lower for pattern in CASUAL_PATTERNS)

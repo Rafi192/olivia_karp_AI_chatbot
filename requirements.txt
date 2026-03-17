@@ -28,3 +28,5 @@ uvicorn[standard]
 tqdm
 pymongo
 beautifulsoup4
+groq
+multipart

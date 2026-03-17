@@ -6,6 +6,7 @@ import logging
 from datetime import datetime
 from bs4 import BeautifulSoup
 import re
+from schema import COLLECTION_SCHEMAS, EXCLUDED_COLLECTIONS
 # from schema import COLLECTION_SCHEMAS
 logger = logging.getLogger(__name__)
 
@@ -13,9 +14,9 @@ logger = logging.getLogger(__name__)
 
 class MultiCollectionMongoDBLoader:
 
-    from schema import COLLECTION_SCHEMAS
+    collection_schema  = COLLECTION_SCHEMAS
 
-    excluded_collections = ['user','notifications']
+    excluded_collections = EXCLUDED_COLLECTIONS
 
     def __init__(self, connection_string:str, database_name:str):
 
@@ -30,7 +31,7 @@ class MultiCollectionMongoDBLoader:
 
         rag_collections = [
             col for col in all_list
-            if col in self.COLLECTION_SCHEMAS and col not in self.excluded_collections
+            if col in self.collection_schema and col not in self.excluded_collections
         ]
 
         print(f"found {len(rag_collections)} rag compatible collections:{rag_collections}")
@@ -69,7 +70,7 @@ class MultiCollectionMongoDBLoader:
             
     ) -> List[Dict[str, Any]]:
         
-        if collection_name not in self.COLLECTION_SCHEMAS:
+        if collection_name not in self.collection_schema:
             logger.warning(f"Now schema defined for collection :{collection_name}")
             return []
         
@@ -95,7 +96,7 @@ class MultiCollectionMongoDBLoader:
             collection_name:str
     ) -> Optional[Dict[str, Any]]:
         
-        schema = self.COLLECTION_SCHEMAS.get(collection_name)
+        schema = self.collection_schema.get(collection_name)
         
         if not schema:
             return None

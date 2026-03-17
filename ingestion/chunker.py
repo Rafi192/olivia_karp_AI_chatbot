@@ -23,7 +23,7 @@ class Chunker:
             end = start + self.chunk_size
             chunk = text[start:end]
 
-            # appeding leftover chunks
+            # skip chunks that are too short to be meaningful
             if len(chunk.strip()) > 50:
                 chunks.append(chunk.strip())
 
