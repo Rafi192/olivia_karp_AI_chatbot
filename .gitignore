@@ -6,3 +6,4 @@ chat/__pycache__/
 llm/__pycache__/
 retriever/__pycache__/
 reranker/__pycache__/
+data/

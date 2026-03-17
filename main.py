@@ -131,12 +131,10 @@ def clear_chat(user_id: str = Form()):
             }
         )
 
-
 @app.get("/api/chat/history/")
-def get_history(user_id: str = Form()):
+def get_history(user_id: str):   
     try:
         history = chat_history.get_history(user_id)
-
         if not history:
             return JSONResponse(
                 status_code=404,
@@ -146,7 +144,6 @@ def get_history(user_id: str = Form()):
                     "text":       "No history found for this user"
                 }
             )
-
         return JSONResponse(
             status_code=200,
             content={
@@ -158,7 +155,6 @@ def get_history(user_id: str = Form()):
                 }
             }
         )
-
     except Exception as ex:
         logger.exception("Get history failed")
         return JSONResponse(
