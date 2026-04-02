@@ -130,6 +130,69 @@ COLLECTION_SCHEMAS = {
         Status: {status}
         """
     },
+    "courses": {
+    "fields": [
+        "title", "lessonsCount", "totalDuration",
+        "lessons", "isLocked"
+    ],
+    "required_fields": ["title", "lessons"],
+    "template": """Course:
+    Title: {title}
+    Total Lessons: {lessonsCount}
+    Total Duration: {totalDuration}
+    Is Locked: {isLocked}
+    Lessons: {lessons}
+    """
+},
+
+    "events": {
+        "fields": [
+            "title", "category", "eventType", "location", "mode",
+            "description", "date", "endDate", "registrationDeadline",
+            "capacity", "registeredCount", "isPaid", "price",
+            "organizerName", "organizerEmail", "status"
+        ],
+        "required_fields": ["title", "description", "date"],
+        "template": """Event:
+        Title: {title}
+        Category: {category}
+        Type: {eventType}
+        Location: {location}
+        Mode: {mode}
+        Status: {status}
+        Date: {date}
+        End Date: {endDate}
+        Registration Deadline: {registrationDeadline}
+        Capacity: {capacity}
+        Registered: {registeredCount}
+        Is Paid: {isPaid}
+        Price: {price}
+        Organizer: {organizerName}
+        Organizer Email: {organizerEmail}
+        Description: {description}
+        """
+    },
+    "subscriptionplans": {
+        "fields": [
+            "title", "description", "price", "billingType",
+            "features", "hasTrial", "trialDays",
+            "isHighlighted", "status", "order"
+        ],
+        "required_fields": ["title", "description"],
+        "template": """Subscription Plan:
+        Title: {title}
+        Description: {description}
+        Price: {price}
+        Billing Type: {billingType}
+        Features: {features}
+        Has Trial: {hasTrial}
+        Trial Days: {trialDays}
+        Highlighted: {isHighlighted}
+        Status: {status}
+        Order: {order}
+        """
+    }
+
 
 }
 
