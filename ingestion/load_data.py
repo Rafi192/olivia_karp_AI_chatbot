@@ -116,6 +116,24 @@ class MultiCollectionMongoDBLoader:
                 print('**************************')
                 print(f'Value for {field} is : {value}')
                 print('**************************')
+            
+            elif field == 'lessons':
+                  # handling nested lessons field for courses collection
+                lessons = document.get('lessons', [])
+                if isinstance(lessons, list) and lessons:
+                    parts = []
+                    for i, lesson in enumerate(lessons, 1):
+                        locked = "Locked" if lesson.get("isLocked") else "Unlocked"
+                        parts.append(
+                            f"Lesson {i}: {lesson.get('title', 'N/A')} | "
+                            f"Duration: {lesson.get('duration', 'N/A')} min | "
+                            f"Level: {lesson.get('level', 'N/A')} | {locked}"
+                        )
+                    value = "; ".join(parts)
+                else:
+                    value = "No lessons available"
+            
+
             else: 
                 value = document.get(field, '')
             
