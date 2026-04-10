@@ -9,10 +9,7 @@ logger = logging.getLogger(__name__)
 
 
 def format_retrieved_chunks(chunks: List[Dict[str, Any]]) -> str:
-    """
-    Format reranked chunks into a clean context block for the LLM.
-    Includes source collection and any URLs from metadata.
-    """
+  
     if not chunks:
         return "No relevant information found."
 
@@ -23,7 +20,8 @@ def format_retrieved_chunks(chunks: List[Dict[str, Any]]) -> str:
         metadata   = chunk.get("metadata", {})
         collection = metadata.get("collection", "unknown")
 
-        block = f"[Source {i} — {collection}]\n{text}"
+        # block = f"[Source {i} — {collection}]\n{text}"
+        block = f"[Context {i}]\n{text}"
 
         # Append any URLs stored in metadata
         for url_field in ["companyURL", "portfolioUrl", "linkedinUrl"]:
@@ -96,6 +94,8 @@ def build_augmented_prompt(
             "'I don't have enough information to answer that.'\n"
             "- Do NOT hallucinate or add any information not present in the context.\n"
             "- Keep answers focused and relevant to the question.\n"
+            "- Do NOT reference 'Source', 'Context', or collection names in your answer.\n"
+            "- Synthesize the information naturally as if you know it.\n"
         )
     )
 

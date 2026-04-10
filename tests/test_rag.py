@@ -22,7 +22,6 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-# ── test queries ────────────────────────────────────────────────
 TEST_QUERIES = [
     "can you give me the portfolio or linkedin url of an applied jobs?",
     "share the thumbnai and file url video uploaded by ayesha Rahman",

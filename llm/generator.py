@@ -13,21 +13,7 @@ def generate_response(
     chat_history: List[Dict[str, str]] = None,
     max_new_tokens: int = 512
 ) -> str:
-    """
-    Full generation pipeline:
-    1. Build augmented prompt from query + chunks + history
-    2. Send to LLM (Groq or HF)
-    3. Return response string
-
-    Args:
-        query:          User query
-        chunks:         Reranked chunks from reranker.py
-        chat_history:   Previous conversation turns
-        max_new_tokens: Max tokens to generate
-
-    Returns:
-        LLM response string
-    """
+   
     try:
         # Step 1 — build augmented prompt
         prompt = build_augmented_prompt(

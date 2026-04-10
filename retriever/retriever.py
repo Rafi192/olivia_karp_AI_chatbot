@@ -78,34 +78,93 @@ class Retriever:
                 result["similarity_score"] = float(score)
                 results.append(result)
 
-        logger.info(f"'{collection_name}': {len(results)} hits for '{query[:50]}'")
+        # logger.info(f"'{collection_name}': {len(results)} hits for '{query[:50]}'")
+        logger.info(f"[{collection_name}] hits: {len(results)} | query: {query}")
         return results
+    
+    def clean_query_for_retrieval(self, query: str) -> str:
 
-    def retrieve(
-        self,
-        query: str,
-        top_k: int = 10
-    ) -> List[Dict[str, Any]]:
-        """
-        Full retrieval pipeline:
-        1. Route query to relevant collection(s)
-        2. Search those indexes
-        3. Return combined results sorted by score
-        """
+        forbidden_patterns = [
+            "User:",
+            "Assistant:",
+            "Conversation History:",
+            "Context:",
+            "Source",
+        ]
+
+        for pattern in forbidden_patterns:
+            if pattern in query:
+                logger.warning(f"Query contaminated with '{pattern}' — cleaning")
+                query = query.split(pattern)[-1]
+
+        return query.strip()
+    
+    def retrieve(self, query: str, top_k: int = 10) -> List[Dict[str, Any]]:
+
+        clean_query = self.clean_query_for_retrieval(query)
+
+        logger.info(f"RAW QUERY >>> {query}")
+        logger.info(f"CLEAN QUERY >>> {clean_query}")
+
+        if len(clean_query.split()) < 2:
+            logger.warning("Query too vague, skipping retrieval")
+            return []
+
         # Step 1 — route
-        collections = route_query(query)
+        collections = route_query(clean_query)
+
+        #  fallback fix 
+        if not collections or "all" in collections:
+            logger.warning("Router returned 'all' or empty → using default collections")
+            collections = [
+                "courseideas",
+                "jobs",
+                "blogs",
+                "reviews"
+            ]
+
         logger.info(f"Searching collections: {collections}")
 
-        # Step 2 — search each routed collection
+        # Step 2 — search
         all_results = []
         for collection_name in collections:
-            hits = self.search_collection(query, collection_name, top_k=top_k)
+            hits = self.search_collection(clean_query, collection_name, top_k=top_k)
             all_results.extend(hits)
 
-        # Step 3 — sort by similarity score across collections
+        # Step 3 — sort globally
         all_results.sort(key=lambda x: x["similarity_score"], reverse=True)
 
-        # Return top_k overall
         final = all_results[:top_k]
-        logger.info(f"Retrieved {len(final)} total chunks for '{query[:50]}'")
+
+        logger.info(f"Retrieved {len(final)} total chunks for '{clean_query}'")
+
         return final
+
+    # def retrieve(
+    #     self,
+    #     query: str,
+    #     top_k: int = 10
+    # ) -> List[Dict[str, Any]]:
+    #     """
+    #     Full retrieval pipeline:
+    #     1. Route query to relevant collection(s)
+    #     2. Search those indexes
+    #     3. Return combined results sorted by score
+    #     """
+    #     # Step 1 — route
+    #     collections = route_query(query)
+    #     logger.info(f"Searching collections: {collections}")
+
+    #     # Step 2 — search each routed collection
+    #     all_results = []
+    #     for collection_name in collections:
+    #         hits = self.search_collection(query, collection_name, top_k=top_k)
+    #         all_results.extend(hits)
+
+    #     # Step 3 — sort by similarity score across collections
+    #     all_results.sort(key=lambda x: x["similarity_score"], reverse=True)
+
+    #     # Return top_k overall
+    #     final = all_results[:top_k]
+    #     logger.info(f"Retrieved {len(final)} total chunks for '{query[:50]}'")
+    #     return final

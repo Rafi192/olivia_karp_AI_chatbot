@@ -1,6 +1,7 @@
 # chat/chat_history.py
 import os
 import logging
+from pyexpat.errors import messages
 from typing import List, Dict
 from datetime import datetime
 from pymongo import MongoClient, ASCENDING
@@ -9,7 +10,7 @@ from dotenv import load_dotenv
 load_dotenv()
 logger = logging.getLogger(__name__)
 
-MAX_HISTORY_TURNS = 6
+MAX_HISTORY_TURNS = 10
 
 
 class ChatHistory:
@@ -35,16 +36,14 @@ class ChatHistory:
         logger.info(f"[{session_id}] Saved {role} message")
 
     def get_history(self, session_id: str) -> List[Dict]:
-        messages = list(
-            self.col.find(
-                {"session_id": session_id},
-                {"_id": 0, "role": 1, "content": 1}
-            )
-            .sort("timestamp", ASCENDING)
-            .limit(MAX_HISTORY_TURNS)
-        )
-        return messages
 
+        messages = list(
+        self.col.find({"session_id": session_id}, {"_id": 0, "role": 1, "content": 1})
+        .sort("timestamp", -1)   
+        .limit(MAX_HISTORY_TURNS)
+       )
+        return list(reversed(messages))
+    
     def clear_session(self, session_id: str):
         result = self.col.delete_many({"session_id": session_id})
         logger.info(f"Cleared {result.deleted_count} messages for [{session_id}]")

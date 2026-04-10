@@ -25,9 +25,10 @@ def build_router_prompt(query: str) -> str:
             "Your job is to read the user query and return ONLY the single most relevant "
             "collection name from the list provided.\n"
             "Rules:\n"
-            "- Return ONLY the collection name. Nothing else.\n"
+            "Return 1-3 collection names separated by commas, most relevant first.\n"
+            "Return only relevant names from the list. \n"
             "- No explanation, no punctuation, no extra words.\n"
-            "- If unsure, return: all\n"
+            
         )
     )
 

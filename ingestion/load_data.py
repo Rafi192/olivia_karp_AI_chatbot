@@ -6,7 +6,7 @@ import logging
 from datetime import datetime
 from bs4 import BeautifulSoup
 import re
-from schema import COLLECTION_SCHEMAS, EXCLUDED_COLLECTIONS
+from .schema import COLLECTION_SCHEMAS, EXCLUDED_COLLECTIONS
 # from schema import COLLECTION_SCHEMAS
 logger = logging.getLogger(__name__)
 

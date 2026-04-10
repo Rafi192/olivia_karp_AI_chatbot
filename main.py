@@ -18,7 +18,17 @@ from reranker.reranker import Reranker
 from llm.generator import generate_response
 
 from ingestion.schema import is_casual_query
+from ingestion.load_data import MultiCollectionMongoDBLoader
+from ingestion.embedder import get_embedder
+from ingestion.chunker import Chunker
+from ingestion.indexer import MongoDBVectorIndexer
+from llm.query_rewriter import rewrite_query
 
+ADMIN_API_KEY    = os.getenv("ADMIN_API_KEY")
+EMBEDDING_MODEL  = "BAAI/bge-base-en-v1.5"
+CHUNK_SIZE       = 100
+CHUNK_OVERLAP    = 10
+VECTOR_STORE     = "data/vector_store"
 load_dotenv()
 
 logging.basicConfig(
@@ -36,61 +46,54 @@ reranker     = Reranker()
 
 
 @app.post("/api/chat/")
-def chat(
-    user_id: str = Form(),
-    query:   str = Form()
-):
+def chat(user_id: str = Form(), query: str = Form()):
     try:
-        if is_casual_query(query):
-            answer = generate_response(
-                query=query,
-                chunks=[],          # empty — no context needed
-                chat_history=[]
-            )
-            chat_history.add_message(user_id, "user",      query)
-            chat_history.add_message(user_id, "assistant", answer)
 
-            return JSONResponse(
-                status_code=200,
-                content={
-                    "status":     True,
-                    "statuscode": 200,
-                    "text": {
-                        "user_id": user_id,
-                        "query":   query,
-                        "answer":  answer
-                    }
-                }
-            )
-        
-        #normal RAG flow for real queries
-        # 1  get the user's previous history
+        # 1. get history FIRST
         history = chat_history.get_history(user_id)
 
-        # 2 — retrieve + rerank
-        chunks   = retriever.retrieve(query, top_k=10)
-        reranked = reranker.rerank(query, chunks, top_k=5)
+        # 2. rewrite query (IMPORTANT FIX)
+        clean_query = rewrite_query(query, history)
 
-        # 3 — generate
-        answer = generate_response(
-            query=query,
-            chunks=reranked,
-            chat_history=history
-        )
+        logger.info(f"Original query: {query}")
+        logger.info(f"Rewritten query: {clean_query}")
 
-        # 4 — save both turns
-        chat_history.add_message(user_id, "user",      query)
+        # 3. casual handling
+        if is_casual_query(clean_query):
+            answer = generate_response(
+                query=clean_query,
+                chunks=[],
+                chat_history=[]
+            )
+
+        else:
+            # 4. retrieve USING CLEAN QUERY ONLY
+            chunks = retriever.retrieve(clean_query, top_k=10)
+
+            # 5. rerank
+            reranked = reranker.rerank(clean_query, chunks, top_k=5)
+
+            # 6. generate
+            answer = generate_response(
+                query=clean_query,
+                chunks=reranked,
+                chat_history=history
+            )
+
+        # 7. save chat
+        chat_history.add_message(user_id, "user", query)
         chat_history.add_message(user_id, "assistant", answer)
 
         return JSONResponse(
             status_code=200,
             content={
-                "status":     True,
+                "status": True,
                 "statuscode": 200,
                 "text": {
                     "user_id": user_id,
-                    "query":   query,
-                    "answer":  answer
+                    "query": query,
+                    "rewritten_query": clean_query,
+                    "answer": answer
                 }
             }
         )
@@ -99,12 +102,79 @@ def chat(
         logger.exception("Chat endpoint failed")
         return JSONResponse(
             status_code=500,
-            content={
-                "status":     False,
-                "statuscode": 500,
-                "text":       str(ex)
-            }
+            content={"status": False, "error": str(ex)}
         )
+
+# @app.post("/api/chat/")
+# def chat(
+#     user_id: str = Form(),
+#     query:   str = Form()
+# ):
+#     try:
+#         if is_casual_query(query):
+#             answer = generate_response(
+#                 query=query,
+#                 chunks=[],          # empty — no context needed
+#                 chat_history=[]
+#             )
+#             chat_history.add_message(user_id, "user",      query)
+#             chat_history.add_message(user_id, "assistant", answer)
+
+#             return JSONResponse(
+#                 status_code=200,
+#                 content={
+#                     "status":     True,
+#                     "statuscode": 200,
+#                     "text": {
+#                         "user_id": user_id,
+#                         "query":   query,
+#                         "answer":  answer
+#                     }
+#                 }
+#             )
+        
+#         #normal RAG flow for real queries
+#         # 1  get the user's previous history
+#         history = chat_history.get_history(user_id)
+
+#         # 2 — retrieve + rerank
+#         chunks   = retriever.retrieve(query, top_k=10)
+#         reranked = reranker.rerank(query, chunks, top_k=5)
+
+#         # 3 — generate
+#         answer = generate_response(
+#             query=query,
+#             chunks=reranked,
+#             chat_history=history
+#         )
+
+#         # 4 — save both turns
+#         chat_history.add_message(user_id, "user",      query)
+#         chat_history.add_message(user_id, "assistant", answer)
+
+#         return JSONResponse(
+#             status_code=200,
+#             content={
+#                 "status":     True,
+#                 "statuscode": 200,
+#                 "text": {
+#                     "user_id": user_id,
+#                     "query":   query,
+#                     "answer":  answer
+#                 }
+#             }
+#         )
+
+#     except Exception as ex:
+#         logger.exception("Chat endpoint failed")
+#         return JSONResponse(
+#             status_code=500,
+#             content={
+#                 "status":     False,
+#                 "statuscode": 500,
+#                 "text":       str(ex)
+#             }
+#         )
 
 
 @app.delete("/api/chat/clear/")
@@ -165,6 +235,82 @@ def get_history(user_id: str):
                 "text":       str(ex)
             }
         )
+
+@app.post("/api/admin/reindex")
+def reindex(api_key:str = Form()):
+    try:
+
+        if api_key != os.getenv("ADMIN_API_KEY"):
+            return JSONResponse(
+                status_code=401,
+                content={
+                    "status":     False,
+                    "statuscode": 401,
+                    "text":       "Unauthorized: Invalid API key"
+                }
+            )
+        logger.info("Admin reindexing triggered via API")
+
+        #1.calling mongoDB multi collection loader
+        loader = MultiCollectionMongoDBLoader(
+            connection_string=os.getenv("MONGODB_URI"),
+            database_name=os.getenv("MONGODB_DATABASE")
+        )
+        formatted_data = loader.load_and_format_all_collections()
+        loader.close()
+        #handling empty data case
+        if not formatted_data:
+            logger.error("No data loaded from MongoDB during reindexing")
+            return JSONResponse(
+                status_code=500,
+                content={
+                    "status":     False,
+                    "statuscode": 500,
+                    "text":       "Reindexing failed: No data loaded from MongoDB"
+                }
+            )
+        
+        #.2. chunking 
+        chunker = Chunker(chunk_size=CHUNK_SIZE, chunk_overlap=CHUNK_OVERLAP)
+        chunked_data = chunker.chunk_all_collections(formatted_data)
+
+        # 3. embeddding + index builkdig
+        embedder = get_embedder(model_name=EMBEDDING_MODEL)
+
+        indexer = MongoDBVectorIndexer(
+            embedder=embedder,
+            vector_store_path=VECTOR_STORE
+        )
+        indexer.build_all_indexes(chunked_data)
+        indexer.save_all_indexes()
+
+        total_docs = sum(len(docs) for docs in formatted_data.values())
+        total_chunks = sum(len(chunk) for chunk in chunked_data.values())
+
+        logger.info(f'reindex completed with total docs of {total_docs} and total chunks of {total_chunks} chunks')
+
+        return JSONResponse(
+            status_code=200,
+            content={
+                "status":True,
+                "statuscode":200,
+                "text":{
+                    "total_docs": total_docs,
+                    "total_chunks": total_chunks
+                }
+            }
+        )
+    
+    except Exception as e:
+        return JSONResponse(
+            status_code=500,
+            content={
+                "status":     False,
+                "statuscode": 500,
+                "text":       f"Reindexing failed: {str(e)}"
+            }
+        )
+
 
 
 @app.get("/api/health/")

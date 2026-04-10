@@ -132,17 +132,31 @@ COLLECTION_SCHEMAS = {
     },
     "courses": {
     "fields": [
-        "title", "lessonsCount", "totalDuration",
-        "lessons", "isLocked"
+        "title",
+        "category",
+        "level",
+        "price",              
+        "currency",           
+        "description",
+        "lessonsCount",
+        "totalDuration",
+        "skills",
+        "tags"
     ],
-    "required_fields": ["title", "lessons"],
+    "required_fields": ["title", "description", "price"],
+
     "template": """Course:
-    Title: {title}
-    Total Lessons: {lessonsCount}
-    Total Duration: {totalDuration}
-    Is Locked: {isLocked}
-    Lessons: {lessons}
-    """
+Title: {title}
+Category: {category}
+Level: {level}
+Price: {price} {currency}
+
+Description:
+{description}
+
+Skills:
+{skills}
+"""
 },
 
     "events": {
