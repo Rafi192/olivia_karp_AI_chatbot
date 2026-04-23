@@ -23,7 +23,7 @@ from ingestion.load_data import MultiCollectionMongoDBLoader
 from ingestion.embedder import get_embedder
 from ingestion.chunker import Chunker
 from ingestion.indexer import MongoDBVectorIndexer
-from llm.query_rewriter import rewrite_query
+# from llm.query_rewriter import rewrite_query
 
 ADMIN_API_KEY    = os.getenv("ADMIN_API_KEY")
 EMBEDDING_MODEL  = "BAAI/bge-base-en-v1.5"
@@ -62,29 +62,30 @@ def chat(user_id: str = Form(), query: str = Form()):
         history = chat_history.get_history(user_id)
 
         # 2. rewrite query (IMPORTANT FIX)
-        clean_query = rewrite_query(query, history)
+        # clean_query = rewrite_query(query, history)
+
 
         logger.info(f"Original query: {query}")
-        logger.info(f"Rewritten query: {clean_query}")
+        # logger.info(f"Rewritten query: {clean_query}")
 
         # 3. casual handling
-        if is_casual_query(clean_query):
+        if is_casual_query(query):
             answer = generate_response(
-                query=clean_query,
+                query=query,
                 chunks=[],
                 chat_history=[]
             )
 
         else:
             # 4. retrieve USING CLEAN QUERY ONLY
-            chunks = retriever.retrieve(clean_query, top_k=10)
+            chunks = retriever.retrieve(query, top_k=10)
 
             # 5. rerank
-            reranked = reranker.rerank(clean_query, chunks, top_k=5)
+            reranked = reranker.rerank(query, chunks, top_k=5)
 
             # 6. generate
             answer = generate_response(
-                query=clean_query,
+                query=query,
                 chunks=reranked,
                 chat_history=history
             )
@@ -101,7 +102,7 @@ def chat(user_id: str = Form(), query: str = Form()):
                 "text": {
                     "user_id": user_id,
                     "query": query,
-                    "rewritten_query": clean_query,
+                    # "rewritten_query": clean_query,
                     "answer": answer
                 }
             }

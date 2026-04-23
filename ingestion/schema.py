@@ -38,6 +38,29 @@ COLLECTION_SCHEMAS = {
         """
     },
 
+    "courses": {
+        "fields": [
+            # Matches actual MongoDB field names exactly
+            "title", "category", "price", "currency",
+            "totalDuration", "lessonCount",   # lessonCount NOT lessonsCount
+            "isAvailable", "totalEnrolled",
+        ],
+        "required_fields": ["title", "price"],
+        "template": """Course:
+        Title: {title}
+        Category: {category}
+        Price: {price} {currency}
+        Duration: {totalDuration}
+        Number of Lessons: {lessonCount}
+        Available: {isAvailable}
+        Total Enrolled: {totalEnrolled}
+        """
+        # NOTE: "level", "description", "skills", "tags" removed because
+        # they do not exist as top-level fields in your MongoDB documents.
+        # "level" lives inside each lesson subdocument, not at the course level.
+        # Add them back to the schema if you add them to MongoDB later.
+    },
+
     "joinmentorcoaches": {
         "fields": [
             "mentorName", "expertise", "experienceYears",
@@ -130,34 +153,6 @@ COLLECTION_SCHEMAS = {
         Status: {status}
         """
     },
-    "courses": {
-    "fields": [
-        "title",
-        "category",
-        "level",
-        "price",              
-        "currency",           
-        "description",
-        "lessonsCount",
-        "totalDuration",
-        "skills",
-        "tags"
-    ],
-    "required_fields": ["title", "description", "price"],
-
-    "template": """Course:
-Title: {title}
-Category: {category}
-Level: {level}
-Price: {price} {currency}
-
-Description:
-{description}
-
-Skills:
-{skills}
-"""
-},
 
     "events": {
         "fields": [
@@ -186,6 +181,7 @@ Skills:
         Description: {description}
         """
     },
+
     "subscriptionplans": {
         "fields": [
             "title", "description", "price", "billingType",
@@ -205,10 +201,9 @@ Skills:
         Status: {status}
         Order: {order}
         """
-    }
-
-
+    },
 }
+
 
 # Collections to exclude from RAG entirely
 EXCLUDED_COLLECTIONS = [
@@ -223,7 +218,8 @@ EXCLUDED_COLLECTIONS = [
 CASUAL_PATTERNS = [
     "hello", "hi", "hey", "how are you", "how can you help",
     "what can you do", "who are you", "good morning", "good evening",
-    "thanks", "thank you", "bye", "goodbye", "how can you assist me", "what can you do for me", "how are you"
+    "thanks", "thank you", "bye", "goodbye",
+    "how can you assist me", "what can you do for me",
 ]
 
 def is_casual_query(query: str) -> bool:
