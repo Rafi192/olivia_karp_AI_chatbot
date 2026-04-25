@@ -4,7 +4,7 @@
 
 ##  Description
 
-A production-ready Retrieval-Augmented Generation (RAG) chatbot built with FastAPI, FAISS, and Groq LLM. The system retrieves relevant information from multiple MongoDB collections and generates context-aware responses with multi-turn conversation memory.
+A production-ready Retrieval-Augmented Generation (RAG) chatbot built with FastAPI, FAISS, and Groq, openAI gpt-4o LLM. The system retrieves relevant information from multiple MongoDB collections and generates context-aware responses with multi-turn conversation memory.
 
 
 ##  Features
@@ -19,7 +19,7 @@ A production-ready Retrieval-Augmented Generation (RAG) chatbot built with FastA
 | Vector Database | FAISS |
 | Embedding Model | BAAI/bge-base-en-v1.5 |
 | Reranker | cross-encoder/ms-marco-MiniLM-L-6-v2 |
-| LLM | Groq (llama-3.1-8b-instant) |
+| LLM | Groq (llama-3.1-8b-instant) / OpenAI gpt-4o |
 | Database | MongoDB |
 | Chat History | MongoDB (chatbot_db) |
 | Prompt Building | LangChain Core |
@@ -28,7 +28,7 @@ A production-ready Retrieval-Augmented Generation (RAG) chatbot built with FastA
 
 - Python 3.10+
 - MongoDB (local or Atlas)
-- Groq API key — free at [console.groq.com](https://console.groq.com)
+- openAI api key (paid)
 - HuggingFace token — free at [huggingface.co](https://huggingface.co)
 
 ---
@@ -133,7 +133,7 @@ CHATBOT_DB=chatbot_db
 CHATBOT_HISTORY_COLLECTION=history
 
 # API Keys
-GROQ_API_KEY=gsk_xxxxxxxxxxxxxxxxxxxx
+OPENAI_API_KEY=gsk_xxxxxxxxxxxxxxxxxxxx
 HF_TOKEN=hf_xxxxxxxxxxxxxxxxxxxx
 ```
 
@@ -300,9 +300,9 @@ curl http://127.0.0.1:8000/api/health/
 
 ## Re-indexing After Data Changes
 
-Whenever you add or update data in MongoDB, re-run the ingestion:
+Whenever you add or update data in MongoDB, re-run the ingestion api endpoint with admin api key:
 ```bash
-python ingestion/ingest.py
+/api/admin/reindex
 ```
 
 This rebuilds all FAISS indexes with the latest data.
@@ -334,7 +334,7 @@ python-multipart
 | `MONGODB_DATABASE` | Main application database name |
 | `CHATBOT_DB` | Chatbot database name (default: `chatbot_db`) |
 | `CHATBOT_HISTORY_COLLECTION` | History collection name (default: `history`) |
-| `GROQ_API_KEY` | Groq API key for LLM generation |
+| `OPENAI_API_KEY` | openAI API key for LLM generation |
 | `HF_TOKEN` | HuggingFace token for model downloads |
 
 ---
