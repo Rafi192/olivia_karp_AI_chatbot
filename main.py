@@ -1,7 +1,7 @@
 # main.py
 import os
 import sys
-import uuid
+# import uuid
 from pathlib import Path
 
 project_root = Path(__file__).parent
@@ -11,6 +11,7 @@ from fastapi import FastAPI, Form
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from dotenv import load_dotenv
+load_dotenv()
 import logging
 
 from chat.chat_history import ChatHistory
@@ -18,8 +19,8 @@ from retriever.retriever import Retriever
 from reranker.reranker import Reranker
 from llm.generator import generate_response
 
-from ingestion.schema import is_casual_query
-from ingestion.load_data import MultiCollectionMongoDBLoader
+from ingestion.schema import is_casual_query, EXCLUDED_COLLECTIONS
+from ingestion.load_data import MongoDBLoader
 from ingestion.embedder import get_embedder
 from ingestion.chunker import Chunker
 from ingestion.indexer import MongoDBVectorIndexer
@@ -27,10 +28,10 @@ from ingestion.indexer import MongoDBVectorIndexer
 
 ADMIN_API_KEY    = os.getenv("ADMIN_API_KEY")
 EMBEDDING_MODEL  = "BAAI/bge-base-en-v1.5"
-CHUNK_SIZE       = 100
-CHUNK_OVERLAP    = 10
+CHUNK_SIZE       = 800
+CHUNK_OVERLAP    = 1
 VECTOR_STORE     = "data/vector_store"
-load_dotenv()
+
 
 logging.basicConfig(
     level=logging.INFO,
@@ -176,7 +177,7 @@ def get_history(user_id: str):
         )
 
 @app.post("/api/admin/reindex")
-def reindex(api_key:str = Form()):
+def reindex(api_key: str = Form()):
     try:
 
         if api_key != os.getenv("ADMIN_API_KEY"):
@@ -190,14 +191,31 @@ def reindex(api_key:str = Form()):
             )
         logger.info("Admin reindexing triggered via API")
 
-        #1.calling mongoDB multi collection loader
-        loader = MultiCollectionMongoDBLoader(
+        # 1. connect + discover collections, excluding sensitive ones
+        loader = MongoDBLoader(
             connection_string=os.getenv("MONGODB_URI"),
             database_name=os.getenv("MONGODB_DATABASE")
         )
-        formatted_data = loader.load_and_format_all_collections()
+
+        all_collections = loader.get_collection_names()
+        available = [c for c in all_collections if c not in EXCLUDED_COLLECTIONS]
+
+        if not available:
+            loader.close()
+            logger.error("No collections available to reindex after exclusions")
+            return JSONResponse(
+                status_code=500,
+                content={
+                    "status":     False,
+                    "statuscode": 500,
+                    "text":       "Reindexing failed: No collections available to reindex"
+                }
+            )
+
+        # 2. load + format the actual documents (this was missing)
+        formatted_data = loader.load_multiple_collections(available)
         loader.close()
-        #handling empty data case
+
         if not formatted_data:
             logger.error("No data loaded from MongoDB during reindexing")
             return JSONResponse(
@@ -208,12 +226,12 @@ def reindex(api_key:str = Form()):
                     "text":       "Reindexing failed: No data loaded from MongoDB"
                 }
             )
-        
-        #.2. chunking 
+
+        # 3. chunking
         chunker = Chunker(chunk_size=CHUNK_SIZE, chunk_overlap=CHUNK_OVERLAP)
         chunked_data = chunker.chunk_all_collections(formatted_data)
 
-        # 3. embeddding + index builkdig
+        # 4. embedding + index building
         embedder = get_embedder(model_name=EMBEDDING_MODEL)
 
         indexer = MongoDBVectorIndexer(
@@ -231,16 +249,17 @@ def reindex(api_key:str = Form()):
         return JSONResponse(
             status_code=200,
             content={
-                "status":True,
-                "statuscode":200,
-                "text":{
+                "status": True,
+                "statuscode": 200,
+                "text": {
                     "total_docs": total_docs,
                     "total_chunks": total_chunks
                 }
             }
         )
-    
+
     except Exception as e:
+        logger.exception("Reindexing failed")
         return JSONResponse(
             status_code=500,
             content={
@@ -249,7 +268,6 @@ def reindex(api_key:str = Form()):
                 "text":       f"Reindexing failed: {str(e)}"
             }
         )
-
 
 
 @app.get("/api/health/")

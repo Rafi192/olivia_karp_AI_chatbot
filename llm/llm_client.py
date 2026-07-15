@@ -2,6 +2,8 @@ import os
 import logging
 from enum import Enum
 import openai
+from dotenv import load_dotenv
+load_dotenv()
 
 logger = logging.getLevelName(__name__)
 
