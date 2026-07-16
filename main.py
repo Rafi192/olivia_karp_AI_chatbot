@@ -24,6 +24,7 @@ from ingestion.load_data import MongoDBLoader
 from ingestion.embedder import get_embedder
 from ingestion.chunker import Chunker
 from ingestion.indexer import MongoDBVectorIndexer
+from chat.usage_gate import UsageGate
 # from llm.query_rewriter import rewrite_query
 
 ADMIN_API_KEY    = os.getenv("ADMIN_API_KEY")
@@ -53,11 +54,23 @@ app.add_middleware(
 chat_history = ChatHistory()
 retriever    = Retriever()
 reranker     = Reranker()
+usage_gate = UsageGate()
 
 
 @app.post("/api/chat/")
 def chat(user_id: str = Form(), query: str = Form()):
     try:
+        usage_result = usage_gate.check_and_increment(user_id)
+
+        if not usage_result["allowed"]:
+            return JSONResponse(
+                status_code=402,
+                content={
+                    "status": False,
+                    "error": "Free message limit reached",
+                    "message": f"You have reached the free message limit. Please consider subscribing to continue using the service."
+                }
+            )
 
         # 1. get history FIRST
         history = chat_history.get_history(user_id)
@@ -269,6 +282,20 @@ def reindex(api_key: str = Form()):
             }
         )
 
+@app.get("/api/usage/")
+def get_usage(user_id: str):
+    try:
+        usage = usage_gate.get_usage(user_id)
+        return JSONResponse(
+            status_code=200,
+            content={"status": True, "statuscode": 200, "text": usage}
+        )
+    except Exception as ex:
+        logger.exception("Get usage failed")
+        return JSONResponse(
+            status_code=500,
+            content={"status": False, "statuscode": 500, "text": str(ex)}
+        )
 
 @app.get("/api/health/")
 def health_check():
